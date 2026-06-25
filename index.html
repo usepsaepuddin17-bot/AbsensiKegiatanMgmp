@@ -136,36 +136,36 @@
     </div>
 
     <div class="card p-3 p-md-4 bg-white">
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
-            <h5 class="fw-bold text-secondary m-0" style="font-size: 1rem;">📊 Riwayat Absensi Bulanan</h5>
-            
-            <div class="d-flex align-items-center gap-2">
-                <label for="filterBulan" class="fw-bold text-muted small text-nowrap mb-0">Lihat Bulan:</label>
-                <input type="month" id="filterBulan" class="form-control form-control-sm" onchange="muatRiwayatTabel(this.value)">
-            </div>
-
-            <button type="button" id="btnCetakPDF" class="btn btn-dark btn-sm fw-bold py-2" onclick="generatePDFPerBulan()">🖨️ Cetak PDF</button>
-        </div>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h5 class="fw-bold text-secondary m-0 w-100 w-md-auto mb-1 mb-md-0" style="font-size: 1rem;">📊 Riwayat Absensi Bulanan</h5>
         
-        <div class="table-responsive scroll-box-riwayat">
-            <table class="table table-bordered table-striped text-nowrap align-middle" id="tabelRiwayat">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Tanggal</th>
-                        <th>Nama Guru</th>
-                        <th>Asal Sekolah</th>
-                        <th>Masuk</th>
-                        <th>Pulang</th>
-                        <th>Status</th>
-                        <th>Ttd</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="bodyRiwayat">
-                    <tr><td colspan="8" class="text-center text-muted">Memuat data bulanan...</td></tr>
-                </tbody>
-            </table>
+        <div class="d-flex align-items-center gap-2 justify-content-between w-100 w-md-auto">
+            <div class="d-flex align-items-center gap-1 flex-grow-1">
+                <label for="filterBulan" class="fw-bold text-muted small text-nowrap mb-0">Bulan:</label>
+                <input type="month" id="filterBulan" class="form-control form-control-sm" style="max-width: 140px;" onchange="muatRiwayatTabel(this.value)">
+            </div>
+            <button type="button" id="btnCetakPDF" class="btn btn-dark btn-sm fw-bold py-2 text-nowrap" onclick="generatePDFPerBulan()">🖨️ Cetak PDF</button>
         </div>
+    </div>
+    
+    <div class="table-responsive scroll-box-riwayat">
+        <table class="table table-bordered table-striped text-nowrap align-middle" id="tabelRiwayat">
+            <thead class="table-dark">
+                <tr>
+                    <th>Tanggal</th>
+                    <th>Nama Guru</th>
+                    <th>Asal Sekolah</th>
+                    <th>Masuk</th>
+                    <th>Pulang</th>
+                    <th>Status</th>
+                    <th>Ttd</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="bodyRiwayat">
+                <tr><td colspan="8" class="text-center text-muted">Memuat data bulanan...</td></tr>
+            </tbody>
+        </table>
     </div>
 </div>
 
