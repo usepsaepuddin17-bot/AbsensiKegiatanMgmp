@@ -11,12 +11,40 @@
     
     <style>
         body { background-color: #f4f6f9; font-family: 'Segoe UI', sans-serif; }
-        .kop-container { display: flex; align-items: center; margin-bottom: 10px; }
-        .kop-logo { width: 85px; height: auto; margin-right: 20px; }
-        .kop-surat { text-align: center; flex-grow: 1; font-weight: bold; text-transform: uppercase; line-height: 1.2; margin-right: 85px; }
+        
+        /* RESPONSIVE KOP SURAT */
+        .kop-container { 
+            display: flex; 
+            flex-direction: row; 
+            align-items: center; 
+            justify-content: center;
+            margin-bottom: 10px; 
+            gap: 15px;
+        }
+        .kop-logo { width: 80px; height: auto; }
+        .kop-surat { 
+            text-align: center; 
+            font-weight: bold; 
+            text-transform: uppercase; 
+            line-height: 1.3; 
+        }
+        
+        /* Otomatis susun vertikal jika dibuka di HP */
+        @media (max-width: 576px) {
+            .kop-container { 
+                flex-direction: column; 
+                text-align: center; 
+            }
+            .kop-logo { width: 70px; margin-bottom: 5px; }
+            .kop-surat h5 { font-size: 0.95rem !important; }
+            .kop-surat h4 { font-size: 1.1rem !important; }
+            .kop-surat p { font-size: 0.75rem !important; }
+            .btn-group-toggle .btn { font-size: 0.85rem; }
+        }
+
         .garis-tebal { border: 2px solid #000; margin-top: 5px; margin-bottom: 2px; opacity: 1; }
         .garis-tipis { border: 0.5px solid #000; margin-bottom: 20px; opacity: 1; }
-        .card { border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .card { border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         .canvas-container { border: 2px dashed #ccc; background: #fff; border-radius: 8px; cursor: crosshair; }
         canvas { width: 100%; height: 180px; display: block; }
         .btn-group-toggle .btn { width: 50%; font-weight: bold; }
@@ -25,27 +53,33 @@
         .btn-submit-masuk { background-color: #1a5f7a; color: white; }
         .btn-submit-pulang { background-color: #de8e12; color: white; }
         .waktu-panel { background: #f8f9fa; border: 1px dashed #adbcce; border-radius: 10px; }
+        
+        /* Mengatur font mini tabel di HP agar tidak meluber */
+        .table-responsive table { font-size: 0.85rem; }
+        @media (max-width: 768px) {
+            .table-responsive table { font-size: 0.75rem; }
+        }
     </style>
 </head>
 <body>
 
-<div class="container my-4" style="max-width: 900px;">
-    <div class="card p-4 bg-white mb-4">
+<div class="container my-3 my-md-4" style="max-width: 900px;">
+    <div class="card p-3 p-md-4 bg-white mb-4">
         <div class="kop-container">
             <img src="https://upload.wikimedia.org/wikipedia/commons/2/2e/Coat_of_arms_of_Maluku.png" alt="Logo Provinsi Maluku" class="kop-logo">
             <div class="kop-surat">
-                <h5 class="mb-1" style="font-size: 1.1rem; letter-spacing: 1px;">Dinas Pendidikan dan Kebudayaan</h5>
+                <h5 class="mb-1" style="font-size: 1.1rem; letter-spacing: 0.5px;">Dinas Pendidikan dan Kebudayaan</h5>
                 <h4 class="mb-1" style="font-size: 1.3rem;">Provinsi Maluku</h4>
                 <p class="mb-0 text-muted" style="font-size: 0.85rem; font-weight: 600; text-transform: none;">Komunitas MGMP Pendidikan Pancasila Wilayah Kota Masohi dan Amahai</p>
             </div>
         </div>
         <hr class="garis-tebal"><hr class="garis-tipis">
 
-        <h3 class="text-center mb-4 text-secondary" style="font-weight: 700;">ABSENSI KEGIATAN</h3>
+        <h3 class="text-center mb-4 text-secondary" style="font-weight: 700; font-size: 1.5rem;">ABSENSI KEGIATAN</h3>
 
         <div class="d-flex btn-group-toggle mb-4 text-center" role="group">
-            <button type="button" id="tabMasuk" class="btn btn-outline-secondary btn-masuk active" onclick="setTipeAbsen('Masuk')">🌅 ABSEN MASUK</button>
-            <button type="button" id="tabPulang" class="btn btn-outline-secondary btn-pulang" onclick="setTipeAbsen('Pulang')">🌇 ABSEN PULANG</button>
+            <button type="button" id="tabMasuk" class="btn btn-outline-secondary btn-masuk active" onclick="setTipeAbsen('Masuk')">🌅 MASUK</button>
+            <button type="button" id="tabPulang" class="btn btn-outline-secondary btn-pulang" onclick="setTipeAbsen('Pulang')">🌇 PULANG</button>
         </div>
 
         <form id="formAbsen" onsubmit="handleFormSubmit(event)">
@@ -54,12 +88,12 @@
             <div class="p-3 mb-3 waktu-panel">
                 <div class="row g-2">
                     <div class="col-6">
-                        <label class="form-label fw-bold text-primary">📅 Pilih Tanggal Laporan</label>
-                        <input type="date" id="tanggalInput" class="form-control" required onchange="muatRiwayatTabel()">
+                        <label class="form-label fw-bold text-primary" style="font-size: 0.85rem;">📅 Tanggal</label>
+                        <input type="date" id="tanggalInput" class="form-control form-control-sm" required onchange="muatRiwayatTabel()">
                     </div>
                     <div class="col-6">
-                        <label class="form-label fw-bold text-primary">🕒 Jam Laporan</label>
-                        <input type="time" id="jamInput" class="form-control" step="1" required>
+                        <label class="form-label fw-bold text-primary" style="font-size: 0.85rem;">🕒 Jam</label>
+                        <input type="time" id="jamInput" class="form-control form-control-sm" step="1" required>
                     </div>
                 </div>
             </div>
@@ -86,7 +120,7 @@
 
             <div class="mb-3" id="sectionStatus">
                 <label class="form-label fw-bold">Status Kehadiran</label>
-                <div class="d-flex gap-3">
+                <div class="d-flex flex-wrap gap-2 gap-sm-3">
                     <div class="form-check"><input class="form-check-input" type="radio" name="statusKehadiran" id="hadir" value="Hadir" checked><label class="form-check-label" for="hadir">Hadir</label></div>
                     <div class="form-check"><input class="form-check-input" type="radio" name="statusKehadiran" id="sakit" value="Sakit"><label class="form-check-label" for="sakit">Sakit</label></div>
                     <div class="form-check"><input class="form-check-input" type="radio" name="statusKehadiran" id="izin" value="Izin"><label class="form-check-label" for="izin">Izin</label></div>
@@ -101,18 +135,18 @@
             </div>
 
             <div class="d-grid gap-2">
-                <button type="submit" id="btnSubmit" class="btn btn-submit-masuk btn-lg">Kirim Kehadiran Masuk</button>
+                <button type="submit" id="btnSubmit" class="btn btn-submit-masuk btn-lg fs-6">Kirim Kehadiran Masuk</button>
             </div>
         </form>
     </div>
 
-    <div class="card p-4 bg-white">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold text-secondary m-0">📊 Riwayat Absensi Akumulasi Bulanan</h5>
-            <button type="button" id="btnCetakPDF" class="btn btn-dark fw-bold" onclick="generatePDFPerBulan()">🖨️ Cetak Rekening Koran PDF</button>
+    <div class="card p-3 p-md-4 bg-white">
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
+            <h5 class="fw-bold text-secondary m-0" style="font-size: 1rem;">📊 Riwayat Absensi Bulanan</h5>
+            <button type="button" id="btnCetakPDF" class="btn btn-dark btn-sm fw-bold py-2" onclick="generatePDFPerBulan()">🖨️ Cetak PDF</button>
         </div>
         <div class="table-responsive">
-            <table class="table table-bordered table-striped" id="tabelRiwayat">
+            <table class="table table-bordered table-striped text-nowrap align-middle" id="tabelRiwayat">
                 <thead class="table-dark">
                     <tr>
                         <th>Tanggal</th>
@@ -133,9 +167,7 @@
 </div>
 
 <script>
-// ==========================================
-// PENTING: ISI DENGAN URL WEB APP HASIL DEPLOY KODE.GS ANDA
-// ==========================================
+// PASTIKAN URL BERIKUT SESUAI DENGAN API_URL WEB APP HASIL DEPLOY TERBARU ANDA
 const API_URL = "https://script.google.com/macros/s/AKfycbzbfee0mJjySXfmKkhptpZbmOiEv1ORRyxojFF478UektYPsLUGlqtrXhG3tYJagYv1/exec"; 
 
 const canvas = document.getElementById('signature-pad');
@@ -185,7 +217,6 @@ window.onload = function() {
     setTimeout(muatRiwayatTabel, 800);
 };
 
-// 1. Mengambil data dropdown dari API Google Sheet menggunakan fetch
 function muatDataDropdown() {
     fetch(API_URL)
     .then(res => res.json())
@@ -209,7 +240,6 @@ function muatDataDropdown() {
     });
 }
 
-// 2. Mengambil data riwayat tabel bulanan via parameter GET (?tanggal=...)
 function muatRiwayatTabel() {
     const tglTerpilih = document.getElementById('tanggalInput').value;
     if (!tglTerpilih) return;
@@ -252,21 +282,20 @@ function setTipeAbsen(tipe) {
     if(tipe === 'Masuk') {
         document.getElementById('tabMasuk').classList.add('active');
         document.getElementById('tabPulang').classList.remove('active');
-        btnSubmit.className = "btn btn-submit-masuk btn-lg"; 
+        btnSubmit.className = "btn btn-submit-masuk btn-lg fs-6"; 
         btnSubmit.innerText = "Kirim Kehadiran Masuk";
         document.getElementById('sectionKegiatan').style.display = 'block';
         document.getElementById('sectionStatus').style.display = 'block';
     } else {
         document.getElementById('tabPulang').classList.add('active');
         document.getElementById('tabMasuk').classList.remove('active');
-        btnSubmit.className = "btn btn-submit-pulang btn-lg"; 
+        btnSubmit.className = "btn btn-submit-pulang btn-lg fs-6"; 
         btnSubmit.innerText = "Kirim Kehadiran Pulang";
         document.getElementById('sectionKegiatan').style.display = 'none';
         document.getElementById('sectionStatus').style.display = 'none';
     }
 }
 
-// 3. Mengirimkan data formulir via POST Request (JSON)
 function handleFormSubmit(event) {
     event.preventDefault();
     const tipe = document.getElementById('tipeAbsen').value;
@@ -360,7 +389,6 @@ function generatePDFPerBulan() {
             }
         });
 
-        // 100% AMAN DI HP: Membuka dengan objek blob dan memaksa browser memunculkan penampil dokumen bawaan mobile
         if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
             const blob = doc.output('blob');
             const blobUrl = URL.createObjectURL(blob);
