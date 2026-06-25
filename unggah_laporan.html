@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Manajemen Laporan MGMP</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f4f7f6; font-family: 'Segoe UI', sans-serif; }
+        .navbar-custom { background-color: #1a5f7a; }
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .btn-custom-upload { background-color: #1a5f7a; color: white; font-weight: bold; }
+        .btn-custom-upload:hover { background-color: #14495c; color: white; }
+        .btn-custom-send { background-color: #2b7a78; color: white; font-weight: bold; text-decoration: none; display: block; text-align: center; }
+        .btn-custom-send:hover { background-color: #1e5654; color: white; }
+        .readonly-custom { background-color: #e9ecef !important; opacity: 0.85; }
+        .btn-back-panel { background-color: #ffffff; color: #495057; font-weight: bold; border: 2px solid #dee2e6; }
+        .btn-back-panel:hover { background-color: #e9ecef; color: #212529; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom mb-4">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#"><i class="fa-solid fa-folder-open me-2"></i> Ruang Unggah Laporan MGMP</a>
+        </div>
+    </nav>
+
+    <div class="container pb-5">
+        
+        <div id="loaderStatus" class="text-center my-4">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="text-muted small mt-2">Sinkronisasi database Google Sheets...</p>
+        </div>
+
+        <div class="row g-4 d-none" id="kontenUtama">
+            
+            <div class="col-md-6">
+                <div class="card p-4 h-100">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-primary bg-opacity-10 p-3 rounded-3 text-primary me-3">
+                            <i class="fa-solid fa-cloud-arrow-up fa-2x" style="color: #1a5f7a !important;"></i>
+                        </div>
+                        <div>
+                            <h4 class="fw-bold m-0" style="color: #1a5f7a; font-size: 1.25rem;">Panel Unggah Laporan</h4>
+                            <p class="text-muted small m-0">Pilih laporan, identitas & TTD Anda akan terisi otomatis</p>
+                        </div>
+                    </div>
+                    <hr>
+                    <form id="formUnggah" onsubmit="prosesBukaLinkUnggah(event)">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-secondary">Nama Guru / Pelapor</label>
+                            <select class="form-select" id="selectGuru" required onchange="aksiPilihGuru(this.value)">
+                                <option value="" selected disabled>-- Pilih Nama Anda --</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-secondary">Jabatan Komunitas</label>
+                            <input type="text" class="form-control readonly-custom" id="inputJabatan" readonly placeholder="Terisi otomatis...">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-secondary">Asal Sekolah</label>
+                            <input type="text" class="form-control readonly-custom" id="inputSekolah" readonly placeholder="Terisi otomatis...">
+                        </div>
+                        <input type="hidden" id="inputTTD">
+
+                        <div class="mb-3 bg-light p-3 rounded-3 border">
+                            <label class="form-label fw-bold small text-primary"><i class="fa-solid fa-list-check me-1"></i> Pilih Jenis Laporan Yang Mau Diunggah</label>
+                            <select class="form-select" id="selectLaporan" required>
+                                <option value="" selected disabled>-- Pilih Jenis Berkas Laporan --</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" id="btnSubmitForm" class="btn btn-custom-upload w-100 py-2.5">
+                            <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Buat Dokumen & Buka Link
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card p-4 h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-success bg-opacity-10 p-3 rounded-3 text-success me-3">
+                                <i class="fa-solid fa-paper-plane fa-2x" style="color: #2b7a78 !important;"></i>
+                            </div>
+                            <div>
+                                <h4 class="fw-bold m-0" style="color: #2b7a78; font-size: 1.25rem;">Panel Kirim Laporan</h4>
+                                <p class="text-muted small m-0">Kirim laporan akhir langsung ke verifikator</p>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="alert alert-info small">
+                            <i class="fa-solid fa-circle-info me-1"></i> Menekan tombol di bawah ini akan langsung mengarahkan Anda ke link pengiriman laporan utama yang tercatat dinamis pada sheet <strong>kirim</strong> (Baris 2).
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <a href="#" id="btnKirimLaporan" target="_blank" class="btn btn-custom-send w-100 py-3 fw-bold">
+                            <i class="fa-solid fa-share-from-square fa-lg me-2"></i> KIRIM LAPORAN UTAMA
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card p-3 text-center bg-white">
+                    <p class="text-muted small mb-2">Sudah selesai beraktivitas? Kembali ke dashboard absensi utama</p>
+                    <a href="index.html" class="btn btn-back-panel py-2.5 mx-auto w-100 w-md-50">
+                        <i class="fa-solid fa-house-user me-2"></i> Kembali ke Menu Utama
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const URL_WEB_APP = "https://script.google.com/macros/s/AKfycbzbfee0mJjySXfmKkhptpZbmOiEv1ORRyxojFF478UektYPsLUGlqtrXhG3tYJagYv1/exec"; 
+
+        let masterGuru = [];
+        let masterLaporan = [];
+
+        // Load data dinamis saat halaman dibuka
+        document.addEventListener("DOMContentLoaded", function() {
+            if (URL_WEB_APP === "") {
+                alert("Harap pasang URL Web App Google Apps Script Anda pada kode!");
+                return;
+            }
+
+            fetch(URL_WEB_APP + "?sumber=panel_unggah")
+            .then(res => res.json())
+            .then(data => {
+                masterGuru = data.guru || [];
+                masterLaporan = data.pilihanLaporan || [];
+                
+                if(data.linkKirimLaporan) {
+                    document.getElementById("btnKirimLaporan").href = data.linkKirimLaporan;
+                } else {
+                    document.getElementById("btnKirimLaporan").addEventListener("click", function(e) {
+                        e.preventDefault();
+                        alert("Link Pengiriman di sheet 'kirim' Kolom A Baris 2 kosong!");
+                    });
+                }
+
+                const selectGuru = document.getElementById("selectGuru");
+                masterGuru.forEach(g => {
+                    selectGuru.innerHTML += `<option value="${g.nama}">${g.nama.toUpperCase()}</option>`;
+                });
+
+                const selectLaporan = document.getElementById("selectLaporan");
+                masterLaporan.forEach(l => {
+                    selectLaporan.innerHTML += `<option value="${l.namaLaporan}">${l.namaLaporan}</option>`;
+                });
+
+                document.getElementById("loaderStatus").classList.add("d-none");
+                document.getElementById("kontenUtama").classList.remove("d-none");
+            })
+            .catch(err => {
+                alert("Gagal sinkronisasi data dari Google Sheet: " + err.message);
+            });
+        });
+
+        function aksiPilihGuru(namaTerpilih) {
+            const dataTerpilih = masterGuru.find(g => g.nama === namaTerpilih);
+            if(dataTerpilih) {
+                document.getElementById("inputJabatan").value = dataTerpilih.jabatan;
+                document.getElementById("inputSekolah").value = dataTerpilih.sekolah;
+                document.getElementById("inputTTD").value = dataTerpilih.ttd;
+            }
+        }
+
+        // PERBAIKAN TOTAL: Mengirim data ke Apps Script untuk proses salin & ganti teks otomatis
+        function prosesBukaLinkUnggah(event) {
+            event.preventDefault();
+            
+            const btnSubmit = document.getElementById("btnSubmitForm");
+            const namaLaporanTerpilih = document.getElementById("selectLaporan").value;
+            const objekLaporan = masterLaporan.find(l => l.namaLaporan === namaLaporanTerpilih);
+            
+            if(!objekLaporan || !objekLaporan.linkForm) {
+                alert("Gagal: Link template untuk laporan ini belum diset di Sheet 'unggah' Kolom B!");
+                return;
+            }
+
+            // Ubah tombol jadi loading agar user tidak klik berulang-ulang
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Memproses Dokumen Anda...`;
+
+            const payloadLog = {
+                aksi: "submit_laporan",
+                namaGuru: document.getElementById("selectGuru").value,
+                jabatan: document.getElementById("inputJabatan").value,
+                asalSekolah: document.getElementById("inputSekolah").value,
+                tandaTangan: document.getElementById("inputTTD").value,
+                namaLaporan: namaLaporanTerpilih
+            };
+
+            // Mengirim data identitas ke Google Apps Script backend
+            fetch(URL_WEB_APP, {
+                method: "POST",
+                body: JSON.stringify(payloadLog)
+            })
+            .then(res => res.json())
+            .then(response => {
+                // Kembalikan tombol ke kondisi semula
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = `<i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Buat Dokumen & Buka Link`;
+
+                if (response.status === "success") {
+                    if (response.message.indexOf("SUKSES_LINK:") !== -1) {
+                        var linkDokumenBaru = response.message.replace("SUKSES_LINK:", "");
+                        alert("Dokumen berhasil dibuat khusus untuk Anda! Menuju halaman pengeditan...");
+                        window.open(linkDokumenBaru, "_blank");
+                    } else {
+                        alert(response.message);
+                    }
+                } else {
+                    alert("Gagal memproses dokumen: " + response.message);
+                }
+            })
+            .catch(err => {
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = `<i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Buat Dokumen & Buka Link`;
+                alert("Terjadi kesalahan koneksi sistem: " + err.message);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absensi MGMP Pendidikan Pancasila</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    
+    <style>
+        body { background-color: #f4f6f9; font-family: 'Segoe UI', sans-serif; }
+        .kop-container { display: flex; flex-direction: row; align-items: center; justify-content: center; margin-bottom: 10px; gap: 15px; }
+        .kop-logo { width: 80px; height: auto; }
+        .kop-surat { text-align: center; font-weight: bold; text-transform: uppercase; line-height: 1.3; }
+        
+        @media (max-width: 576px) {
+            .kop-container { flex-direction: column; text-align: center; }
+            .kop-logo { width: 70px; margin-bottom: 5px; }
+            .kop-surat h5 { font-size: 0.95rem !important; }
+            .kop-surat h4 { font-size: 1.1rem !important; }
+            .kop-surat p { font-size: 0.75rem !important; }
+            .btn-group-toggle .btn { font-size: 0.85rem; }
+        }
+
+        .garis-tebal { border: 2px solid #000; margin-top: 5px; margin-bottom: 2px; opacity: 1; }
+        .garis-tipis { border: 0.5px solid #000; margin-bottom: 20px; opacity: 1; }
+        .card { border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .canvas-container { border: 2px dashed #ccc; background: #fff; border-radius: 8px; cursor: crosshair; }
+        canvas { width: 100%; height: 180px; display: block; }
+        .btn-group-toggle .btn { width: 50%; font-weight: bold; }
+        .btn-masuk.active { background-color: #1a5f7a; color: white; }
+        .btn-pulang.active { background-color: #de8e12; color: white; }
+        .btn-submit-masuk { background-color: #1a5f7a; color: white; }
+        .btn-submit-pulang { background-color: #de8e12; color: white; }
+        .waktu-panel { background: #f8f9fa; border: 1px dashed #adbcce; border-radius: 10px; }
+        
+        .table-responsive table { font-size: 0.85rem; }
+        @media (max-width: 768px) { .table-responsive table { font-size: 0.75rem; } }
+
+        /* Kustomisasi Wadah Scroll Riwayat */
+        .scroll-box-riwayat {
+            max-height: 530px; /* Batasan tinggi untuk estimasi maksimal 15 baris data */
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+        }
+        /* Membuat judul kolom tetap diam di atas saat discroll */
+        .scroll-box-riwayat thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: #212529;
+            box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.15);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container my-3 my-md-4" style="max-width: 900px;">
+    <div class="card p-3 p-md-4 bg-white mb-4">
+        <div class="kop-container">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/2/2e/Coat_of_arms_of_Maluku.png" alt="Logo Provinsi Maluku" class="kop-logo">
+            <div class="kop-surat">
+                <h5 class="mb-1" style="font-size: 1.1rem; letter-spacing: 0.5px;">Dinas Pendidikan dan Kebudayaan</h5>
+                <h4 class="mb-1" style="font-size: 1.3rem;">Provinsi Maluku</h4>
+                <p class="mb-0 text-muted" style="font-size: 0.85rem; font-weight: 600; text-transform: none;">Komunitas MGMP Pendidikan Pancasila Wilayah Kota Masohi dan Amahai</p>
+            </div>
+        </div>
+        <hr class="garis-tebal"><hr class="garis-tipis">
+
+        <h3 class="text-center mb-4 text-secondary" style="font-weight: 700; font-size: 1.5rem;">ABSENSI KEGIATAN</h3>
+
+        <div class="d-flex btn-group-toggle mb-4 text-center" role="group">
+            <button type="button" id="tabMasuk" class="btn btn-outline-secondary btn-masuk active" onclick="setTipeAbsen('Masuk')">🌅 MASUK</button>
+            <button type="button" id="tabPulang" class="btn btn-outline-secondary btn-pulang" onclick="setTipeAbsen('Pulang')">🌇 PULANG</button>
+        </div>
+
+        <form id="formAbsen" onsubmit="handleFormSubmit(event)">
+            <input type="hidden" id="tipeAbsen" value="Masuk">
+            
+            <div class="p-3 mb-3 waktu-panel">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="form-label fw-bold text-primary" style="font-size: 0.85rem;">📅 Tanggal</label>
+                        <input type="date" id="tanggalInput" class="form-control form-control-sm" required onchange="singkronisasiFilterBulan(this.value)">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-bold text-primary" style="font-size: 0.85rem;">🕒 Jam</label>
+                        <input type="time" id="jamInput" class="form-control form-control-sm" step="1" required>
+                    </div>
+                </div>
+            </div>
+
+            <div id="sectionKegiatan">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Tema Kegiatan</label>
+                    <select class="form-select" id="temaKegiatan" required><option value="" disabled selected>Memuat tema...</option></select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Tempat Kegiatan</label>
+                    <select class="form-select" id="tempatKegiatan" required><option value="" disabled selected>Memuat lokasi...</option></select>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Nama Guru</label>
+                <select class="form-select" id="namaGuru" required onchange="setAsalSekolah()"><option value="" disabled selected>Memuat daftar guru...</option></select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Asal Sekolah</label>
+                <input type="text" class="form-control" id="asalSekolah" readonly placeholder="Otomatis mengikuti nama guru" style="background-color: #e9ecef;">
+            </div>
+
+            <div class="mb-3" id="sectionStatus">
+                <label class="form-label fw-bold">Status Kehadiran</label>
+                <div class="d-flex flex-wrap gap-2 gap-sm-3">
+                    <div class="form-check"><input class="form-check-input" type="radio" name="statusKehadiran" id="hadir" value="Hadir" checked><label class="form-check-label" for="hadir">Hadir</label></div>
+                    <div class="form-check"><input class="form-check-input" type="radio" name="statusKehadiran" id="sakit" value="Sakit"><label class="form-check-label" for="sakit">Sakit</label></div>
+                    <div class="form-check"><input class="form-check-input" type="radio" name="statusKehadiran" id="izin" value="Izin"><label class="form-check-label" for="izin">Izin</label></div>
+                    <div class="form-check"><input class="form-check-input" type="radio" name="statusKehadiran" id="alpa" value="Alpa"><label class="form-check-label" for="alpa">Alpa</label></div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-bold">Tanda Tangan</label>
+                <div class="canvas-container"><canvas id="signature-pad"></canvas></div>
+                <button type="button" class="btn btn-sm btn-danger mt-2" onclick="clearSignature()">Bersihkan</button>
+            </div>
+
+            <div class="d-grid gap-2">
+                <button type="submit" id="btnSubmit" class="btn btn-submit-masuk btn-lg fs-6">Kirim Kehadiran Masuk</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card p-3 p-md-4 bg-white">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h5 class="fw-bold text-secondary m-0 w-100 w-md-auto mb-1 mb-md-0" style="font-size: 1rem;">📊 Riwayat Absensi Bulanan</h5>
+        
+        <div class="d-flex flex-wrap align-items-center gap-2 justify-content-between w-100 w-md-auto">
+            <div class="d-flex align-items-center gap-1">
+                <label for="filterBulan" class="fw-bold text-muted small text-nowrap mb-0">Bulan:</label>
+                <input type="month" id="filterBulan" class="form-control form-control-sm" style="max-width: 120px;" onchange="muatRiwayatTabel(this.value)">
+            </div>
+            
+            <a href="unggah_laporan.html" class="btn btn-primary btn-sm fw-bold py-2 text-nowrap" style="background-color: #1a5f7a; border: none;">
+                📁 Unggah Laporan
+            </a>
+            
+            <button type="button" id="btnCetakPDF" class="btn btn-dark btn-sm fw-bold py-2 text-nowrap" onclick="generatePDFPerBulan()">🖨️ Cetak PDF</button>
+        </div>
+    </div>
+    
+    <div class="table-responsive scroll-box-riwayat">
+        <table class="table table-bordered table-striped text-nowrap align-middle" id="tabelRiwayat">
+            <thead class="table-dark">
+                <tr>
+                    <th>Tanggal</th>
+                    <th>Nama Guru</th>
+                    <th>Asal Sekolah</th>
+                    <th>Masuk</th>
+                    <th>Pulang</th>
+                    <th>Status</th>
+                    <th>Ttd</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="bodyRiwayat">
+                <tr><td colspan="8" class="text-center text-muted">Memuat data bulanan...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// API Kunci Penghubung WebApp Google Script
+const API_URL = "https://script.google.com/macros/s/AKfycbzbfee0mJjySXfmKkhptpZbmOiEv1ORRyxojFF478UektYPsLUGlqtrXhG3tYJagYv1/exec"; 
+
+const canvas = document.getElementById('signature-pad');
+const ctx = canvas.getContext('2d');
+let drawing = false; 
+let masterGuru = []; 
+let dataRiwayatGlobal = [];
+
+// Penyesuaian Kanvas Tanda Tangan
+function resizeCanvas() { 
+    canvas.width = canvas.offsetWidth; 
+    canvas.height = canvas.offsetHeight; 
+    ctx.lineWidth = 3; 
+    ctx.lineCap = 'round'; 
+    ctx.strokeStyle = '#000'; 
+}
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('DOMContentLoaded', resizeCanvas);
+
+function getMousePos(e) { 
+    const rect = canvas.getBoundingClientRect(); 
+    return {
+        x: (e.clientX || e.touches[0].clientX) - rect.left, 
+        y: (e.clientY || e.touches[0].clientY) - rect.top 
+    };
+}
+function startDrawing(e) { drawing = true; const pos = getMousePos(e); ctx.beginPath(); ctx.moveTo(pos.x, pos.y); e.preventDefault(); }
+function draw(e) { if (!drawing) return; const pos = getMousePos(e); ctx.lineTo(pos.x, pos.y); ctx.stroke(); e.preventDefault(); }
+function stopDrawing() { drawing = false; }
+
+canvas.addEventListener('mousedown', startDrawing);
+canvas.addEventListener('mousemove', draw); 
+canvas.addEventListener('mouseup', stopDrawing);
+canvas.addEventListener('touchstart', startDrawing);
+canvas.addEventListener('touchmove', draw); 
+canvas.addEventListener('touchend', stopDrawing);
+
+function clearSignature() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+
+function setWaktuDefault() {
+    const sekarang = new Date();
+    const tahun = sekarang.getFullYear();
+    const bulan = String(sekarang.getMonth() + 1).padStart(2, '0');
+    const tanggal = String(sekarang.getDate()).padStart(2, '0');
+    
+    const jam = String(sekarang.getHours()).padStart(2, '0');
+    const menit = String(sekarang.getMinutes()).padStart(2, '0');
+    const detik = String(sekarang.getSeconds()).padStart(2, '0');
+
+    const tglFormatted = `${tahun}-${bulan}-${tanggal}`;
+    document.getElementById('tanggalInput').value = tglFormatted;
+    document.getElementById('jamInput').value = `${jam}:${menit}:${detik}`;
+    
+    // Set default value filter bulan (YYYY-MM)
+    document.getElementById('filterBulan').value = `${tahun}-${bulan}`;
+}
+
+window.onload = function() {
+    setWaktuDefault();
+    muatDataDropdown();
+    setTimeout(function() {
+        const blnThn = document.getElementById('filterBulan').value;
+        muatRiwayatTabel(blnThn);
+    }, 800);
+};
+
+function muatDataDropdown() {
+    fetch(API_URL)
+    .then(res => res.json())
+    .then(data => {
+        masterGuru = data.guru || [];
+        let htmlGuru = '<option value="" disabled selected>-- Pilih Nama Guru --</option>';
+        masterGuru.forEach(g => { htmlGuru += `<option value="${g.nama}">${g.nama}</option>`; });
+        document.getElementById('namaGuru').innerHTML = htmlGuru;
+
+        let htmlTema = '<option value="" disabled selected>-- Pilih Tema Kegiatan --</option>';
+        (data.tema || []).forEach(t => { htmlTema += `<option value="${t}">${t}</option>`; });
+        document.getElementById('temaKegiatan').innerHTML = htmlTema;
+
+        let htmlTempat = '<option value="" disabled selected>-- Pilih Tempat Kegiatan --</option>';
+        (data.tempat || []).forEach(p => { htmlTempat += `<option value="${p}">${p}</option>`; });
+        document.getElementById('tempatKegiatan').innerHTML = htmlTempat;
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Gagal terhubung ke server database.");
+    });
+}
+
+// Fungsi sinkronisasi internal saat kolom tanggal utama form dirubah
+function singkronisasiFilterBulan(tglValue) {
+    if(!tglValue) return;
+    const part = tglValue.split("-");
+    const blnThn = `${part[0]}-${part[1]}`;
+    document.getElementById('filterBulan').value = blnThn;
+    muatRiwayatTabel(blnThn);
+}
+
+// FUNGSI UTAMA: MENAMPILKAN DATA KE DALAM TABEL BERDASARKAN FILTER BULAN (YYYY-MM)
+function muatRiwayatTabel(bulanPilihan) {
+    let targetTanggal = "";
+    
+    if (bulanPilihan) {
+        targetTanggal = `${bulanPilihan}-01`;
+    } else {
+        targetTanggal = document.getElementById('tanggalInput').value;
+    }
+    
+    if (!targetTanggal) return;
+    
+    document.getElementById('bodyRiwayat').innerHTML = '<tr><td colspan="8" class="text-center text-muted">Memuat data bulanan...</td></tr>';
+    
+    fetch(`${API_URL}?tanggal=${targetTanggal}`)
+    .then(res => res.json())
+    .then(riwayat => {
+        dataRiwayatGlobal = riwayat || [];
+        let html = "";
+        if(dataRiwayatGlobal.length === 0) {
+            html = '<tr><td colspan="8" class="text-center text-muted">Tidak ada data absensi bulan ini.</td></tr>';
+        } else {
+            dataRiwayatGlobal.forEach((r, index) => {
+                let imgTag = r.ttd && r.ttd.startsWith("data:image") ? `<img src="${r.ttd}" style="height:25px; background:#fff;">` : "-";
+                
+                html += `<tr id="row-${index}" data-rowid="${r.rowId}">
+                    <td><span class="txt-tgl">${r.tanggal}</span></td>
+                    <td><b>${r.nama}</b></td>
+                    <td>${r.sekolah}</td>
+                    <td class="text-success fw-bold"><span class="txt-masuk">${r.masuk}</span></td>
+                    <td class="text-warning fw-bold"><span class="txt-pulang">${r.pulang}</span></td>
+                    <td><span class="badge bg-info">${r.status}</span></td>
+                    <td>${imgTag}</td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-warning py-0 px-2 fw-bold" style="font-size:0.75rem;" onclick="aktifkanEditMode(${index})">✏️ Edit</button>
+                    </td>
+                </tr>`;
+            });
+        }
+        document.getElementById('bodyRiwayat').innerHTML = html;
+    })
+    .catch(err => {
+        console.error("Gagal memuat tabel riwayat:", err);
+        document.getElementById('bodyRiwayat').innerHTML = '<tr><td colspan="8" class="text-center text-danger">Gagal memuat data dari server.</td></tr>';
+    });
+}
+
+// FUNGSI EDIT INDIVIDUAL: JAMINAN 100% SINKRON ANTARA INPUT DAN TARGET BARIS
+function aktifkanEditMode(index) {
+    const row = document.getElementById(`row-${index}`);
+    if (!row) return;
+    
+    const tglSpan = row.querySelector('.txt-tgl');
+    const masukSpan = row.querySelector('.txt-masuk');
+    const pulangSpan = row.querySelector('.txt-pulang');
+    
+    if(!tglSpan || !masukSpan || !pulangSpan) {
+        alert("Eror struktur: Elemen kolom gagal dipetakan.");
+        return;
+    }
+    
+    let tglAsli = tglSpan.innerText.trim();
+    const masukAsli = masukSpan.innerText.trim();
+    const pulangAsli = pulangSpan.innerText.trim();
+    
+    if (tglAsli.includes("/") || tglAsli.includes("-")) {
+        const pembatas = tglAsli.includes("/") ? "/" : "-";
+        const part = tglAsli.split(pembatas);
+        if (part.length === 3 && part[0].length !== 4) {
+            tglAsli = `${part[2]}-${part[1].padStart(2, '0')}-${part[0].padStart(2, '0')}`;
+        }
+    }
+    
+    tglSpan.innerHTML = `<input type="date" class="form-control form-control-sm inp-tgl" value="${tglAsli}" style="width:130px; font-size:0.8rem;">`;
+    masukSpan.innerHTML = `<input type="text" class="form-control form-control-sm inp-masuk" value="${masukAsli}" style="width:75px; font-size:0.8rem;">`;
+    pulangSpan.innerHTML = `<input type="text" class="form-control form-control-sm inp-pulang" value="${pulangAsli}" style="width:75px; font-size:0.8rem;">`;
+    
+    const kolomAksi = row.cells[row.cells.length - 1];
+    kolomAksi.innerHTML = `
+        <div class="d-flex flex-column gap-1">
+            <button type="button" class="btn btn-sm btn-success py-0 px-2 fw-bold" style="font-size:0.7rem;" onclick="simpanHasilEdit(${index})">💾 Simpan</button>
+            <button type="button" class="btn btn-sm btn-secondary py-0 px-2" style="font-size:0.7rem;" onclick="batalEdit()">❌ Batal</button>
+        </div>
+    `;
+}
+
+function batalEdit() {
+    const blnThn = document.getElementById('filterBulan').value;
+    muatRiwayatTabel(blnThn);
+}
+
+function simpanHasilEdit(index) {
+    const row = document.getElementById(`row-${index}`);
+    if (!row) return;
+    
+    const rowIdAsli = row.getAttribute('data-rowid'); 
+    const inpTgl = row.querySelector('.inp-tgl');
+    const inpMasuk = row.querySelector('.inp-masuk');
+    const inpPulang = row.querySelector('.inp-pulang');
+    
+    if (!inpTgl || !inpMasuk || !inpPulang) return;
+    
+    const tanggalBaru = inpTgl.value; 
+    const masukBaru = inpMasuk.value;
+    const pulangBaru = inpPulang.value;
+    
+    const kolomAksi = row.cells[row.cells.length - 1];
+    kolomAksi.innerHTML = `<span class="text-muted" style="font-size:0.7rem;">Proses...</span>`;
+
+    const payload = {
+        aksi: "edit",
+        rowId: rowIdAsli,
+        tanggalBaru: tanggalBaru,
+        masukBaru: masukBaru,
+        pulangBaru: pulangBaru
+    };
+
+    fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(res => {
+        alert(res.message);
+        
+        if (tanggalBaru) {
+            document.getElementById('tanggalInput').value = tanggalBaru;
+            const part = tanggalBaru.split("-");
+            document.getElementById('filterBulan').value = `${part[0]}-${part[1]}`;
+        }
+        
+        const blnThn = document.getElementById('filterBulan').value;
+        muatRiwayatTabel(blnThn); 
+    })
+    .catch(err => {
+        alert("Gagal memperbarui: " + err);
+        batalEdit();
+    });
+}
+
+function setAsalSekolah() {
+    const namaTerpilih = document.getElementById('namaGuru').value;
+    const guru = masterGuru.find(g => g.nama === namaTerpilih);
+    document.getElementById('asalSekolah').value = guru ? guru.sekolah : "";
+}
+
+function setTipeAbsen(tipe) {
+    document.getElementById('tipeAbsen').value = tipe;
+    const btnSubmit = document.getElementById('btnSubmit');
+    if(tipe === 'Masuk') {
+        document.getElementById('tabMasuk').classList.add('active');
+        document.getElementById('tabPulang').classList.remove('active');
+        btnSubmit.className = "btn btn-submit-masuk btn-lg fs-6"; 
+        btnSubmit.innerText = "Kirim Kehadiran Masuk";
+        document.getElementById('sectionKegiatan').style.display = 'block';
+        document.getElementById('sectionStatus').style.display = 'block';
+    } else {
+        document.getElementById('tabPulang').classList.add('active');
+        document.getElementById('tabMasuk').classList.remove('active');
+        btnSubmit.className = "btn btn-submit-pulang btn-lg fs-6"; 
+        btnSubmit.innerText = "Kirim Kehadiran Pulang";
+        document.getElementById('sectionKegiatan').style.display = 'none';
+        document.getElementById('sectionStatus').style.display = 'none';
+    }
+}
+
+function handleFormSubmit(event) {
+    event.preventDefault();
+    const tipe = document.getElementById('tipeAbsen').value;
+    const btn = document.getElementById('btnSubmit');
+    btn.disabled = true; 
+    btn.innerText = "Mengirim...";
+
+    const dataObj = {
+        tipeAbsen: tipe,
+        temaKegiatan: tipe === 'Masuk' ? document.getElementById('temaKegiatan').value : "-",
+        tempatKegiatan: tipe === 'Masuk' ? document.getElementById('tempatKegiatan').value : "-",
+        namaGuru: document.getElementById('namaGuru').value,
+        asalSekolah: document.getElementById('asalSekolah').value,
+        statusKehadiran: document.querySelector('input[name="statusKehadiran"]:checked')?.value || "Hadir",
+        tandaTangan: canvas.toDataURL(),
+        tanggalInput: document.getElementById('tanggalInput').value,
+        jamInput: document.getElementById('jamInput').value
+    };
+
+    fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify(dataObj)
+    })
+    .then(res => res.json())
+    .then(res => {
+        alert(res.message);
+        clearSignature();
+        btn.disabled = false;
+        setTipeAbsen(tipe);
+        
+        const blnThn = document.getElementById('filterBulan').value;
+        muatRiwayatTabel(blnThn);
+    })
+    .catch(err => {
+        alert("Gagal mengirim absensi: " + err);
+        btn.disabled = false;
+    });
+}
+
+// FUNGSI UPDATE: MENAMPILKAN TEMA & TEMPAT BERURUT KE BAWAH (1, 2, 3...) JIKA LEBIH DARI SATU
+function generatePDFPerBulan() {
+    if (!dataRiwayatGlobal || dataRiwayatGlobal.length === 0) { 
+        alert("Tidak ada data untuk dicetak!"); 
+        return; 
+    }
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'pt', 'a4');
+        const tglValue = document.getElementById('tanggalInput').value; 
+        const komponen = tglValue.split("-");
+        const blnThn = komponen[1] + "_" + komponen[0]; 
+
+        // --- PROSES MENYARING TEMA & TEMPAT YANG UNIK ---
+        let daftarTema = [];
+        let daftarTempat = [];
+
+        dataRiwayatGlobal.forEach(r => {
+            let tema = (r.tema || "-").trim();
+            let tempat = (r.tempat || "-").trim();
+
+            if (tema && tema !== "-" && !daftarTema.includes(tema)) {
+                daftarTema.push(tema);
+            }
+            if (tempat && tempat !== "-" && !daftarTempat.includes(tempat)) {
+                daftarTempat.push(tempat);
+            }
+        });
+
+        // --- FORMAT MENJADI LIST BERURUT KE BAWAH ---
+        let teksTema = [];
+        if (daftarTema.length <= 1) {
+            teksTema.push(`TEMA KEGIATAN   : ${daftarTema.length === 1 ? daftarTema[0].toUpperCase() : "-"}`);
+        } else {
+            teksTema.push("TEMA KEGIATAN   :");
+            daftarTema.forEach((t, idx) => {
+                teksTema.push(`  ${idx + 1}. ${t.toUpperCase()}`);
+            });
+        }
+
+        let teksTempat = [];
+        if (daftarTempat.length <= 1) {
+            teksTempat.push(`TEMPAT KEGIATAN : ${daftarTempat.length === 1 ? daftarTempat[0].toUpperCase() : "-"}`);
+        } else {
+            teksTempat.push("TEMPAT KEGIATAN :");
+            daftarTempat.forEach((p, idx) => {
+                teksTempat.push(`  ${idx + 1}. ${p.toUpperCase()}`);
+            });
+        }
+
+        // --- CETAK HEADER DOKUMEN ---
+        doc.setFont("courier", "bold"); doc.setFontSize(12);
+        doc.text("MGMP PENDIDIKAN PANCASILA WILAYAH KOTA MASOHI & AMAHAI", 40, 45);
+        doc.setFont("courier", "normal"); doc.setFontSize(9);
+        doc.text("ABSENSI KEGIATAN RUTIN MINGGUAN", 40, 58);
+        
+        // --- CETAK TEMA & TEMPAT SECARA DINAMIS ---
+        doc.setFontSize(8);
+        let currentY = 73; // Koordinat awal untuk tema
+        
+        // Cetak baris-baris Tema
+        teksTema.forEach(baris => {
+            doc.text(baris, 40, currentY);
+            currentY += 12; // Jarak antar baris teks
+        });
+        
+        currentY += 2; // Beri sedikit jarak sebelum masuk ke bagian Tempat
+        
+        // Cetak baris-baris Tempat
+        teksTempat.forEach(baris => {
+            doc.text(baris, 40, currentY);
+            currentY += 12;
+        });
+        
+        // Membuat garis pembatas dinamis tepat di bawah teks terakhir
+        currentY += 2;
+        doc.line(40, currentY, 555, currentY);
+
+        // --- PROSES STRUKTUR TABEL ---
+        const rows = [];
+        dataRiwayatGlobal.forEach((r) => {
+            rows.push([
+                r.tanggal || "-",
+                (r.nama || "-").toUpperCase(),
+                (r.sekolah || "-").toUpperCase(),
+                r.masuk || "-",
+                r.pulang || "-",
+                (r.status || "HADIR").toUpperCase(),
+                "" 
+            ]);
+        });
+
+        // Jarak tabel mengikuti tinggi dinamis (currentY + 15) agar tidak bertabrakan
+        doc.autoTable({
+            startY: currentY + 15, 
+            head: [['TANGGAL', 'NAMA GURU', 'ASAL SEKOLAH', 'JAM MSK', 'JAM PLG', 'STS', 'TTD']],
+            body: rows,
+            theme: 'striped',
+            styles: { font: 'courier', fontSize: 8, valign: 'middle' },
+            headStyles: { fillColor: [230, 230, 230], textColor: [0,0,0], fontStyle: 'bold' },
+            columnStyles: {
+                0: { cellWidth: 65 }, 1: { cellWidth: 95 }, 2: { cellWidth: 110 },
+                3: { halign: 'center', cellWidth: 50 }, 4: { halign: 'center', cellWidth: 50 },
+                5: { halign: 'center', cellWidth: 40 }, 6: { cellWidth: 60 }
+            },
+            didDrawCell: function(data) {
+                if (data.section === 'body' && data.column.index === 6) {
+                    const rowIndex = data.row.index;
+                    const ttdData = dataRiwayatGlobal[rowIndex]?.ttd;
+                    if (ttdData && ttdData.startsWith("data:image")) {
+                        const posY = data.cell.y + (data.cell.height - 14) / 2;
+                        doc.addImage(ttdData, 'PNG', data.cell.x + 5, posY, 50, 14);
+                    }
+                }
+            }
+        });
+
+        // --- DOWNLOAD / SAVE PDF ---
+        if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            const blob = doc.output('blob');
+            const blobUrl = URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.target = '_blank';
+            link.download = `ABSENSI_KEGIATAN_MGMP_${blnThn}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } else {
+            doc.save(`DAFTAR_ABSENSI_KEGIATAN_MGMP_${blnThn}.pdf`);
+        }
+
+    } catch (error) {
+        alert("Gagal memproses file PDF: " + error.message);
+    }
+}
+</script>
+</body>
+</html>
