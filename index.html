@@ -207,13 +207,31 @@ canvas.addEventListener('touchend', stopDrawing);
 function clearSignature() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
 
 function setWaktuDefault() {
-    document.getElementById('tanggalInput').value = "2026-06-25";
-    document.getElementById('jamInput').value = "13:11:35";
+    const sekarang = new Date();
+    
+    // Ambil komponen tanggal lokal berdasarkan waktu HP
+    const tahun = sekarang.getFullYear();
+    const bulan = String(sekarang.getMonth() + 1).padStart(2, '0'); // Bulan dimulai dari 0
+    const tanggal = String(sekarang.getDate()).padStart(2, '0');
+    
+    // Ambil komponen jam lokal berdasarkan waktu HP
+    const jam = String(sekarang.getHours()).padStart(2, '0');
+    const menit = String(sekarang.getMinutes()).padStart(2, '0');
+    const detik = String(sekarang.getSeconds()).padStart(2, '0');
+
+    // Set nilai otomatis ke elemen Form input HTML
+    document.getElementById('tanggalInput').value = `${tahun}-${bulan}-${tanggal}`;
+    document.getElementById('jamInput').value = `${jam}:${menit}:${detik}`;
 }
 
 window.onload = function() {
+    // 1. Set waktu default (hari ini) terlebih dahulu agar elemen input memiliki nilai
     setWaktuDefault();
+    
+    // 2. Muat data nama guru, tema, dan tempat untuk dropdown
     muatDataDropdown();
+    
+    // 3. Muat tabel riwayat absensi bulanan berdasarkan tanggal yang baru saja di-set otomatis
     setTimeout(muatRiwayatTabel, 800);
 };
 
