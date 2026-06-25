@@ -11,30 +11,12 @@
     
     <style>
         body { background-color: #f4f6f9; font-family: 'Segoe UI', sans-serif; }
-        
-        /* RESPONSIVE KOP SURAT */
-        .kop-container { 
-            display: flex; 
-            flex-direction: row; 
-            align-items: center; 
-            justify-content: center;
-            margin-bottom: 10px; 
-            gap: 15px;
-        }
+        .kop-container { display: flex; flex-direction: row; align-items: center; justify-content: center; margin-bottom: 10px; gap: 15px; }
         .kop-logo { width: 80px; height: auto; }
-        .kop-surat { 
-            text-align: center; 
-            font-weight: bold; 
-            text-transform: uppercase; 
-            line-height: 1.3; 
-        }
+        .kop-surat { text-align: center; font-weight: bold; text-transform: uppercase; line-height: 1.3; }
         
-        /* Otomatis susun vertikal jika dibuka di HP */
         @media (max-width: 576px) {
-            .kop-container { 
-                flex-direction: column; 
-                text-align: center; 
-            }
+            .kop-container { flex-direction: column; text-align: center; }
             .kop-logo { width: 70px; margin-bottom: 5px; }
             .kop-surat h5 { font-size: 0.95rem !important; }
             .kop-surat h4 { font-size: 1.1rem !important; }
@@ -54,10 +36,23 @@
         .btn-submit-pulang { background-color: #de8e12; color: white; }
         .waktu-panel { background: #f8f9fa; border: 1px dashed #adbcce; border-radius: 10px; }
         
-        /* Mengatur font mini tabel di HP agar tidak meluber */
         .table-responsive table { font-size: 0.85rem; }
-        @media (max-width: 768px) {
-            .table-responsive table { font-size: 0.75rem; }
+        @media (max-width: 768px) { .table-responsive table { font-size: 0.75rem; } }
+
+        /* Kustomisasi Wadah Scroll Riwayat */
+        .scroll-box-riwayat {
+            max-height: 530px; /* Batasan tinggi untuk estimasi maksimal 15 baris data */
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+        }
+        /* Membuat judul kolom tetap diam di atas saat discroll */
+        .scroll-box-riwayat thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: #212529;
+            box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.15);
         }
     </style>
 </head>
@@ -89,7 +84,7 @@
                 <div class="row g-2">
                     <div class="col-6">
                         <label class="form-label fw-bold text-primary" style="font-size: 0.85rem;">📅 Tanggal</label>
-                        <input type="date" id="tanggalInput" class="form-control form-control-sm" required onchange="muatRiwayatTabel()">
+                        <input type="date" id="tanggalInput" class="form-control form-control-sm" required onchange="singkronisasiFilterBulan(this.value)">
                     </div>
                     <div class="col-6">
                         <label class="form-label fw-bold text-primary" style="font-size: 0.85rem;">🕒 Jam</label>
@@ -141,11 +136,18 @@
     </div>
 
     <div class="card p-3 p-md-4 bg-white">
-        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
             <h5 class="fw-bold text-secondary m-0" style="font-size: 1rem;">📊 Riwayat Absensi Bulanan</h5>
+            
+            <div class="d-flex align-items-center gap-2">
+                <label for="filterBulan" class="fw-bold text-muted small text-nowrap mb-0">Lihat Bulan:</label>
+                <input type="month" id="filterBulan" class="form-control form-control-sm" onchange="muatRiwayatTabel(this.value)">
+            </div>
+
             <button type="button" id="btnCetakPDF" class="btn btn-dark btn-sm fw-bold py-2" onclick="generatePDFPerBulan()">🖨️ Cetak PDF</button>
         </div>
-        <div class="table-responsive">
+        
+        <div class="table-responsive scroll-box-riwayat">
             <table class="table table-bordered table-striped text-nowrap align-middle" id="tabelRiwayat">
                 <thead class="table-dark">
                     <tr>
@@ -156,10 +158,11 @@
                         <th>Pulang</th>
                         <th>Status</th>
                         <th>Ttd</th>
+                        <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody id="bodyRiwayat">
-                    <tr><td colspan="7" class="text-center text-muted">Memuat data bulanan...</td></tr>
+                    <tr><td colspan="8" class="text-center text-muted">Memuat data bulanan...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -167,7 +170,7 @@
 </div>
 
 <script>
-// PASTIKAN URL BERIKUT SESUAI DENGAN API_URL WEB APP HASIL DEPLOY TERBARU ANDA
+// API Kunci Penghubung WebApp Google Script
 const API_URL = "https://script.google.com/macros/s/AKfycbzbfee0mJjySXfmKkhptpZbmOiEv1ORRyxojFF478UektYPsLUGlqtrXhG3tYJagYv1/exec"; 
 
 const canvas = document.getElementById('signature-pad');
@@ -176,6 +179,7 @@ let drawing = false;
 let masterGuru = []; 
 let dataRiwayatGlobal = [];
 
+// Penyesuaian Kanvas Tanda Tangan
 function resizeCanvas() { 
     canvas.width = canvas.offsetWidth; 
     canvas.height = canvas.offsetHeight; 
@@ -208,31 +212,29 @@ function clearSignature() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
 
 function setWaktuDefault() {
     const sekarang = new Date();
-    
-    // Ambil komponen tanggal lokal berdasarkan waktu HP
     const tahun = sekarang.getFullYear();
-    const bulan = String(sekarang.getMonth() + 1).padStart(2, '0'); // Bulan dimulai dari 0
+    const bulan = String(sekarang.getMonth() + 1).padStart(2, '0');
     const tanggal = String(sekarang.getDate()).padStart(2, '0');
     
-    // Ambil komponen jam lokal berdasarkan waktu HP
     const jam = String(sekarang.getHours()).padStart(2, '0');
     const menit = String(sekarang.getMinutes()).padStart(2, '0');
     const detik = String(sekarang.getSeconds()).padStart(2, '0');
 
-    // Set nilai otomatis ke elemen Form input HTML
-    document.getElementById('tanggalInput').value = `${tahun}-${bulan}-${tanggal}`;
+    const tglFormatted = `${tahun}-${bulan}-${tanggal}`;
+    document.getElementById('tanggalInput').value = tglFormatted;
     document.getElementById('jamInput').value = `${jam}:${menit}:${detik}`;
+    
+    // Set default value filter bulan (YYYY-MM)
+    document.getElementById('filterBulan').value = `${tahun}-${bulan}`;
 }
 
 window.onload = function() {
-    // 1. Set waktu default (hari ini) terlebih dahulu agar elemen input memiliki nilai
     setWaktuDefault();
-    
-    // 2. Muat data nama guru, tema, dan tempat untuk dropdown
     muatDataDropdown();
-    
-    // 3. Muat tabel riwayat absensi bulanan berdasarkan tanggal yang baru saja di-set otomatis
-    setTimeout(muatRiwayatTabel, 800);
+    setTimeout(function() {
+        const blnThn = document.getElementById('filterBulan').value;
+        muatRiwayatTabel(blnThn);
+    }, 800);
 };
 
 function muatDataDropdown() {
@@ -258,34 +260,153 @@ function muatDataDropdown() {
     });
 }
 
-function muatRiwayatTabel() {
-    const tglTerpilih = document.getElementById('tanggalInput').value;
-    if (!tglTerpilih) return;
+// Fungsi sinkronisasi internal saat kolom tanggal utama form dirubah
+function singkronisasiFilterBulan(tglValue) {
+    if(!tglValue) return;
+    const part = tglValue.split("-");
+    const blnThn = `${part[0]}-${part[1]}`;
+    document.getElementById('filterBulan').value = blnThn;
+    muatRiwayatTabel(blnThn);
+}
+
+// FUNGSI UTAMA: MENAMPILKAN DATA KE DALAM TABEL BERDASARKAN FILTER BULAN (YYYY-MM)
+function muatRiwayatTabel(bulanPilihan) {
+    let targetTanggal = "";
     
-    fetch(`${API_URL}?tanggal=${tglTerpilih}`)
+    if (bulanPilihan) {
+        targetTanggal = `${bulanPilihan}-01`;
+    } else {
+        targetTanggal = document.getElementById('tanggalInput').value;
+    }
+    
+    if (!targetTanggal) return;
+    
+    document.getElementById('bodyRiwayat').innerHTML = '<tr><td colspan="8" class="text-center text-muted">Memuat data bulanan...</td></tr>';
+    
+    fetch(`${API_URL}?tanggal=${targetTanggal}`)
     .then(res => res.json())
     .then(riwayat => {
         dataRiwayatGlobal = riwayat || [];
         let html = "";
         if(dataRiwayatGlobal.length === 0) {
-            html = '<tr><td colspan="7" class="text-center text-muted">Tidak ada data absensi bulan ini.</td></tr>';
+            html = '<tr><td colspan="8" class="text-center text-muted">Tidak ada data absensi bulan ini.</td></tr>';
         } else {
-            dataRiwayatGlobal.forEach(r => {
+            dataRiwayatGlobal.forEach((r, index) => {
                 let imgTag = r.ttd && r.ttd.startsWith("data:image") ? `<img src="${r.ttd}" style="height:25px; background:#fff;">` : "-";
-                html += `<tr>
-                    <td><small>${r.tanggal}</small></td>
+                
+                html += `<tr id="row-${index}" data-rowid="${r.rowId}">
+                    <td><span class="txt-tgl">${r.tanggal}</span></td>
                     <td><b>${r.nama}</b></td>
                     <td>${r.sekolah}</td>
-                    <td class="text-success fw-bold">${r.masuk}</td>
-                    <td class="text-warning fw-bold">${r.pulang}</td>
+                    <td class="text-success fw-bold"><span class="txt-masuk">${r.masuk}</span></td>
+                    <td class="text-warning fw-bold"><span class="txt-pulang">${r.pulang}</span></td>
                     <td><span class="badge bg-info">${r.status}</span></td>
                     <td>${imgTag}</td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-warning py-0 px-2 fw-bold" style="font-size:0.75rem;" onclick="aktifkanEditMode(${index})">✏️ Edit</button>
+                    </td>
                 </tr>`;
             });
         }
         document.getElementById('bodyRiwayat').innerHTML = html;
     })
-    .catch(err => console.error("Gagal memuat tabel riwayat:", err));
+    .catch(err => {
+        console.error("Gagal memuat tabel riwayat:", err);
+        document.getElementById('bodyRiwayat').innerHTML = '<tr><td colspan="8" class="text-center text-danger">Gagal memuat data dari server.</td></tr>';
+    });
+}
+
+// FUNGSI EDIT INDIVIDUAL: JAMINAN 100% SINKRON ANTARA INPUT DAN TARGET BARIS
+function aktifkanEditMode(index) {
+    const row = document.getElementById(`row-${index}`);
+    if (!row) return;
+    
+    const tglSpan = row.querySelector('.txt-tgl');
+    const masukSpan = row.querySelector('.txt-masuk');
+    const pulangSpan = row.querySelector('.txt-pulang');
+    
+    if(!tglSpan || !masukSpan || !pulangSpan) {
+        alert("Eror struktur: Elemen kolom gagal dipetakan.");
+        return;
+    }
+    
+    let tglAsli = tglSpan.innerText.trim();
+    const masukAsli = masukSpan.innerText.trim();
+    const pulangAsli = pulangSpan.innerText.trim();
+    
+    if (tglAsli.includes("/") || tglAsli.includes("-")) {
+        const pembatas = tglAsli.includes("/") ? "/" : "-";
+        const part = tglAsli.split(pembatas);
+        if (part.length === 3 && part[0].length !== 4) {
+            tglAsli = `${part[2]}-${part[1].padStart(2, '0')}-${part[0].padStart(2, '0')}`;
+        }
+    }
+    
+    tglSpan.innerHTML = `<input type="date" class="form-control form-control-sm inp-tgl" value="${tglAsli}" style="width:130px; font-size:0.8rem;">`;
+    masukSpan.innerHTML = `<input type="text" class="form-control form-control-sm inp-masuk" value="${masukAsli}" style="width:75px; font-size:0.8rem;">`;
+    pulangSpan.innerHTML = `<input type="text" class="form-control form-control-sm inp-pulang" value="${pulangAsli}" style="width:75px; font-size:0.8rem;">`;
+    
+    const kolomAksi = row.cells[row.cells.length - 1];
+    kolomAksi.innerHTML = `
+        <div class="d-flex flex-column gap-1">
+            <button type="button" class="btn btn-sm btn-success py-0 px-2 fw-bold" style="font-size:0.7rem;" onclick="simpanHasilEdit(${index})">💾 Simpan</button>
+            <button type="button" class="btn btn-sm btn-secondary py-0 px-2" style="font-size:0.7rem;" onclick="batalEdit()">❌ Batal</button>
+        </div>
+    `;
+}
+
+function batalEdit() {
+    const blnThn = document.getElementById('filterBulan').value;
+    muatRiwayatTabel(blnThn);
+}
+
+function simpanHasilEdit(index) {
+    const row = document.getElementById(`row-${index}`);
+    if (!row) return;
+    
+    const rowIdAsli = row.getAttribute('data-rowid'); 
+    const inpTgl = row.querySelector('.inp-tgl');
+    const inpMasuk = row.querySelector('.inp-masuk');
+    const inpPulang = row.querySelector('.inp-pulang');
+    
+    if (!inpTgl || !inpMasuk || !inpPulang) return;
+    
+    const tanggalBaru = inpTgl.value; 
+    const masukBaru = inpMasuk.value;
+    const pulangBaru = inpPulang.value;
+    
+    const kolomAksi = row.cells[row.cells.length - 1];
+    kolomAksi.innerHTML = `<span class="text-muted" style="font-size:0.7rem;">Proses...</span>`;
+
+    const payload = {
+        aksi: "edit",
+        rowId: rowIdAsli,
+        tanggalBaru: tanggalBaru,
+        masukBaru: masukBaru,
+        pulangBaru: pulangBaru
+    };
+
+    fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(res => {
+        alert(res.message);
+        
+        if (tanggalBaru) {
+            document.getElementById('tanggalInput').value = tanggalBaru;
+            const part = tanggalBaru.split("-");
+            document.getElementById('filterBulan').value = `${part[0]}-${part[1]}`;
+        }
+        
+        const blnThn = document.getElementById('filterBulan').value;
+        muatRiwayatTabel(blnThn); 
+    })
+    .catch(err => {
+        alert("Gagal memperbarui: " + err);
+        batalEdit();
+    });
 }
 
 function setAsalSekolah() {
@@ -343,7 +464,9 @@ function handleFormSubmit(event) {
         clearSignature();
         btn.disabled = false;
         setTipeAbsen(tipe);
-        muatRiwayatTabel();
+        
+        const blnThn = document.getElementById('filterBulan').value;
+        muatRiwayatTabel(blnThn);
     })
     .catch(err => {
         alert("Gagal mengirim absensi: " + err);
@@ -351,6 +474,7 @@ function handleFormSubmit(event) {
     });
 }
 
+// FUNGSI UPDATE: MENAMPILKAN TEMA & TEMPAT BERURUT KE BAWAH (1, 2, 3...) JIKA LEBIH DARI SATU
 function generatePDFPerBulan() {
     if (!dataRiwayatGlobal || dataRiwayatGlobal.length === 0) { 
         alert("Tidak ada data untuk dicetak!"); 
@@ -364,12 +488,72 @@ function generatePDFPerBulan() {
         const komponen = tglValue.split("-");
         const blnThn = komponen[1] + "_" + komponen[0]; 
 
+        // --- PROSES MENYARING TEMA & TEMPAT YANG UNIK ---
+        let daftarTema = [];
+        let daftarTempat = [];
+
+        dataRiwayatGlobal.forEach(r => {
+            let tema = (r.tema || "-").trim();
+            let tempat = (r.tempat || "-").trim();
+
+            if (tema && tema !== "-" && !daftarTema.includes(tema)) {
+                daftarTema.push(tema);
+            }
+            if (tempat && tempat !== "-" && !daftarTempat.includes(tempat)) {
+                daftarTempat.push(tempat);
+            }
+        });
+
+        // --- FORMAT MENJADI LIST BERURUT KE BAWAH ---
+        let teksTema = [];
+        if (daftarTema.length <= 1) {
+            teksTema.push(`TEMA KEGIATAN   : ${daftarTema.length === 1 ? daftarTema[0].toUpperCase() : "-"}`);
+        } else {
+            teksTema.push("TEMA KEGIATAN   :");
+            daftarTema.forEach((t, idx) => {
+                teksTema.push(`  ${idx + 1}. ${t.toUpperCase()}`);
+            });
+        }
+
+        let teksTempat = [];
+        if (daftarTempat.length <= 1) {
+            teksTempat.push(`TEMPAT KEGIATAN : ${daftarTempat.length === 1 ? daftarTempat[0].toUpperCase() : "-"}`);
+        } else {
+            teksTempat.push("TEMPAT KEGIATAN :");
+            daftarTempat.forEach((p, idx) => {
+                teksTempat.push(`  ${idx + 1}. ${p.toUpperCase()}`);
+            });
+        }
+
+        // --- CETAK HEADER DOKUMEN ---
         doc.setFont("courier", "bold"); doc.setFontSize(12);
         doc.text("MGMP PENDIDIKAN PANCASILA WILAYAH KOTA MASOHI & AMAHAI", 40, 45);
         doc.setFont("courier", "normal"); doc.setFontSize(9);
         doc.text("ABSENSI KEGIATAN RUTIN MINGGUAN", 40, 58);
-        doc.line(40, 68, 555, 68);
+        
+        // --- CETAK TEMA & TEMPAT SECARA DINAMIS ---
+        doc.setFontSize(8);
+        let currentY = 73; // Koordinat awal untuk tema
+        
+        // Cetak baris-baris Tema
+        teksTema.forEach(baris => {
+            doc.text(baris, 40, currentY);
+            currentY += 12; // Jarak antar baris teks
+        });
+        
+        currentY += 2; // Beri sedikit jarak sebelum masuk ke bagian Tempat
+        
+        // Cetak baris-baris Tempat
+        teksTempat.forEach(baris => {
+            doc.text(baris, 40, currentY);
+            currentY += 12;
+        });
+        
+        // Membuat garis pembatas dinamis tepat di bawah teks terakhir
+        currentY += 2;
+        doc.line(40, currentY, 555, currentY);
 
+        // --- PROSES STRUKTUR TABEL ---
         const rows = [];
         dataRiwayatGlobal.forEach((r) => {
             rows.push([
@@ -383,8 +567,9 @@ function generatePDFPerBulan() {
             ]);
         });
 
+        // Jarak tabel mengikuti tinggi dinamis (currentY + 15) agar tidak bertabrakan
         doc.autoTable({
-            startY: 90,
+            startY: currentY + 15, 
             head: [['TANGGAL', 'NAMA GURU', 'ASAL SEKOLAH', 'JAM MSK', 'JAM PLG', 'STS', 'TTD']],
             body: rows,
             theme: 'striped',
@@ -407,6 +592,7 @@ function generatePDFPerBulan() {
             }
         });
 
+        // --- DOWNLOAD / SAVE PDF ---
         if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
             const blob = doc.output('blob');
             const blobUrl = URL.createObjectURL(blob);
