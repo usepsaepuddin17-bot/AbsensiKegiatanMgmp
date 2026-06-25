@@ -139,11 +139,16 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <h5 class="fw-bold text-secondary m-0 w-100 w-md-auto mb-1 mb-md-0" style="font-size: 1rem;">📊 Riwayat Absensi Bulanan</h5>
         
-        <div class="d-flex align-items-center gap-2 justify-content-between w-100 w-md-auto">
-            <div class="d-flex align-items-center gap-1 flex-grow-1">
+        <div class="d-flex flex-wrap align-items-center gap-2 justify-content-between w-100 w-md-auto">
+            <div class="d-flex align-items-center gap-1">
                 <label for="filterBulan" class="fw-bold text-muted small text-nowrap mb-0">Bulan:</label>
-                <input type="month" id="filterBulan" class="form-control form-control-sm" style="max-width: 140px;" onchange="muatRiwayatTabel(this.value)">
+                <input type="month" id="filterBulan" class="form-control form-control-sm" style="max-width: 120px;" onchange="muatRiwayatTabel(this.value)">
             </div>
+            
+            <a href="unggah_laporan.html" class="btn btn-primary btn-sm fw-bold py-2 text-nowrap" style="background-color: #1a5f7a; border: none;">
+                📁 Unggah Laporan
+            </a>
+            
             <button type="button" id="btnCetakPDF" class="btn btn-dark btn-sm fw-bold py-2 text-nowrap" onclick="generatePDFPerBulan()">🖨️ Cetak PDF</button>
         </div>
     </div>
