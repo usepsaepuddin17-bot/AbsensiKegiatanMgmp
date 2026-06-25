@@ -414,12 +414,12 @@ function generatePDFPerBulan() {
             const link = document.createElement('a');
             link.href = blobUrl;
             link.target = '_blank';
-            link.download = `REKENING_KORAN_MGMP_${blnThn}.pdf`;
+            link.download = `ABSENSI_KEGIATAN_MGMP_${blnThn}.pdf`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
         } else {
-            doc.save(`REKENING_KORAN_MGMP_${blnThn}.pdf`);
+            doc.save(`DAFTAR_ABSENSI_KEGIATAN_MGMP_${blnThn}.pdf`);
         }
 
     } catch (error) {
